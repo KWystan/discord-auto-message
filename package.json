@@ -1,0 +1,17 @@
+{
+  "name": "discordautomsg",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Discord Auto Message — React (client/) + Flask (server/) web app",
+  "scripts": {
+    "dev": "npm --prefix client run dev",
+    "api": "node scripts/api.cjs",
+    "build": "npm --prefix client run build",
+    "lint": "npm --prefix client run lint",
+    "preview": "npm --prefix client run preview",
+    "start": "concurrently -n client,api -c blue,green \"npm run dev\" \"npm run api\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

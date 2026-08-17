@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Python
+server/venv/
+__pycache__/
+*.pyc
+
+# Local environment / secrets (never commit real credentials)
+server/.env
+
+# App data — contains tokens, webhooks, channel IDs (runtime state, not source)
+app_data.json
+
+# Logs / editor / OS
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

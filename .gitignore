@@ -15,6 +15,11 @@ server/.env
 # App data — contains tokens, webhooks, channel IDs (runtime state, not source)
 app_data.json
 
+# Agent instruction files
+AGENTS.md
+CLAUDE.md
+COPILOT.md
+
 # Logs / editor / OS
 *.log
 .DS_Store

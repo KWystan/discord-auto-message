@@ -47,7 +47,7 @@ class EngineParityTest(unittest.TestCase):
         d = self.engine.data
         for key in ("tokens", "channels", "webhooks", "replacers", "jobs", "task_locks"):
             self.assertIn(key, d)
-        self.assertEqual(d["humanizer_settings"]["cooldown_buffer_min_hrs"], 1.0)
+        self.assertEqual(d["humanizer_settings"]["simulate_typing"], True)
         self.assertEqual(d["listener_settings"]["slash_sorting"], "Interval")
 
     def test_load_data_on_startup_migrates_missing_keys(self):
@@ -168,21 +168,6 @@ class EngineParityTest(unittest.TestCase):
         self.engine.data["replacers"]["PLACEHOLDER"] = "REPLACED"
         out = self.engine.apply_replacers("{hi|hello} PLACEHOLDER")
         self.assertIn(out, ("hi REPLACED", "hello REPLACED"))
-
-    # ── human interval ─────────────────────────────────────────────────
-    def test_calculate_human_interval_long_adds_1_to_3_hours(self):
-        base = 7200  # 2h
-        for _ in range(20):
-            total = self.engine.calculate_human_interval(base)
-            self.assertGreaterEqual(total, base + 3600)
-            self.assertLessEqual(total, base + 10800)
-
-    def test_calculate_human_interval_short_varies_15_percent(self):
-        base = 600  # 10 min
-        for _ in range(20):
-            total = self.engine.calculate_human_interval(base)
-            self.assertGreaterEqual(total, max(5.0, base - base * 0.15))
-            self.assertLessEqual(total, base + base * 0.15)
 
     # ── send path (mocked network) ─────────────────────────────────────
     def test_send_humanized_message_success_and_429(self):

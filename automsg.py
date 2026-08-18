@@ -43,8 +43,6 @@ class PersistentDiscordApp:
             "task_locks": {},
             "humanizer_settings": {
                 "simulate_typing": True,
-                "cooldown_buffer_min_hrs": 1.0,   # 1 hour extra
-                "cooldown_buffer_max_hrs": 3.0,   # 3 hours extra
                 "sleep_hours_enabled": False, 
                 "sleep_start_hour": 1,
                 "sleep_end_hour": 8
@@ -191,16 +189,6 @@ class PersistentDiscordApp:
         tk.Checkbutton(h_row, text="Simulate 'is typing...'", variable=self.typing_var, 
                        font=("Arial", 8, "bold"), bg="#f8f9fa", command=self.save_humanizer_settings).pack(side="left", padx=4)
 
-        tk.Label(h_row, text="Extra Random Gap Past Timeout:", bg="#f8f9fa", font=("Arial", 8, "bold")).pack(side="left", padx=(15, 2))
-        self.buf_min_entry = tk.Entry(h_row, width=4, font=("Arial", 8))
-        self.buf_min_entry.insert(0, str(h_sett.get("cooldown_buffer_min_hrs", 1.0)))
-        self.buf_min_entry.pack(side="left")
-        tk.Label(h_row, text="to", bg="#f8f9fa", font=("Arial", 8)).pack(side="left", padx=2)
-        self.buf_max_entry = tk.Entry(h_row, width=4, font=("Arial", 8))
-        self.buf_max_entry.insert(0, str(h_sett.get("cooldown_buffer_max_hrs", 3.0)))
-        self.buf_max_entry.pack(side="left")
-        tk.Label(h_row, text="hours extra", bg="#f8f9fa", font=("Arial", 8)).pack(side="left", padx=2)
-
         self.sleep_var = tk.BooleanVar(value=h_sett.get("sleep_hours_enabled", False))
         tk.Checkbutton(h_row, text="Sleep (1AM-8AM)", variable=self.sleep_var, 
         font=("Arial", 8), bg="#f8f9fa", command=self.save_humanizer_settings).pack(side="left", padx=12)
@@ -340,22 +328,14 @@ class PersistentDiscordApp:
         tk.Button(footer, text="REMOVE TASK", bg="#dc3545", fg="white", command=self.delete_job).pack(side="right", padx=5)
 
     def save_humanizer_settings(self):
-        try:
-            b_min_hrs = max(0.1, float(self.buf_min_entry.get().strip()))
-            b_max_hrs = max(b_min_hrs, float(self.buf_max_entry.get().strip()))
-        except Exception:
-            b_min_hrs, b_max_hrs = 1.0, 3.0
-            
         self.data["humanizer_settings"] = {
             "simulate_typing": self.typing_var.get(),
-            "cooldown_buffer_min_hrs": b_min_hrs,
-            "cooldown_buffer_max_hrs": b_max_hrs,
             "sleep_hours_enabled": self.sleep_var.get(),
             "sleep_start_hour": 1,
             "sleep_end_hour": 8
         }
         self.auto_save()
-        self.log(f"🛡️ Settings Saved: Extra Delay = +{b_min_hrs:.1f}h to +{b_max_hrs:.1f}h past timeout | Sleep={self.sleep_var.get()}")
+        self.log(f"🛡️ Settings Saved: Simulate typing = {self.typing_var.get()} | Sleep={self.sleep_var.get()}")
 
     def quick_store(self, cat):
         name, val = self.nick_entry.get().strip(), self.val_entry.get().strip()
@@ -550,7 +530,7 @@ class PersistentDiscordApp:
         if not self.running:
             self.running = True
             self.btn_run.config(text="STOP ENGINE", bg="#dc3545")
-            self.log(">>> ENGINE STARTING (1-3HR RANDOM GAP ACTIVE) <<<")
+            self.log(">>> ENGINE STARTING <<<")
             
             stagger_interval = 2.0
             for idx, job in enumerate(self.data["jobs"]):
@@ -795,41 +775,6 @@ class PersistentDiscordApp:
 
         return True
 
-    # -----------------------------------------------------------------
-    # 1-3 HOUR RANDOM GAP CALCULATION PAST TIMEOUT
-    # -----------------------------------------------------------------
-    def calculate_human_interval(self, base_seconds):
-        h_sett = self.data.get("humanizer_settings", {})
-        
-        # 1. Sleep Window Check (Optional)
-        if h_sett.get("sleep_hours_enabled", False):
-            current_hour = datetime.now().hour
-            s_start = h_sett.get("sleep_start_hour", 1)
-            s_end = h_sett.get("sleep_end_hour", 8)
-            if s_start <= current_hour < s_end:
-                wake_delay = ((s_end - current_hour) * 3600) + random.uniform(180, 600)
-                self.log(f"🌙 Sleep Window Active ({s_start}AM-{s_end}AM). Pausing until morning...")
-                return wake_delay
-
-        # 2. Add 1.0 to 3.0 random hours extra past cooldown
-        buf_min_hrs = float(h_sett.get("cooldown_buffer_min_hrs", 1.0))
-        buf_max_hrs = float(h_sett.get("cooldown_buffer_max_hrs", 3.0))
-        
-        if base_seconds >= 1800: # For 30m+ intervals
-            # Pick random extra seconds between 1 hour and 3 hours
-            extra_seconds = random.uniform(buf_min_hrs * 3600.0, buf_max_hrs * 3600.0)
-            total_seconds = base_seconds + extra_seconds
-            
-            total_hrs = total_seconds / 3600.0
-            base_hrs = base_seconds / 3600.0
-            extra_hrs = extra_seconds / 3600.0
-            
-            self.log(f"⏱️ Next cycle in ~{total_hrs:.2f} hrs ({base_hrs:.1f}h timeout + {extra_hrs:.2f}h random gap).")
-            return total_seconds
-        else:
-            variance = base_seconds * 0.15
-            return max(5.0, base_seconds + random.uniform(-variance, variance))
-
     def worker(self, job, initial_delay=0):
         jid = job["id"]
         self.running_jobs[jid] = time.time() + initial_delay
@@ -865,13 +810,13 @@ class PersistentDiscordApp:
                 # Send with typing indicator
                 self.send_humanized_message(token, cid, final_msg, web_url, current_job['acc'], v_tag)
 
-                # Compute next run (Base 2 hrs + 1 to 3 hours random gap)
+                # Compute next run (the configured interval as-is, floored by
+                # slowmode + 1s)
                 try:
                     ival = float(current_job["int"])
                     base_wait = (ival * 60.0) if current_job["unit"] == "Min" else ival
                     
-                    human_wait = self.calculate_human_interval(base_wait)
-                    actual_wait = max(human_wait, self.slow_modes.get(current_job["chan"], 0) + 1.0)
+                    actual_wait = max(base_wait, self.slow_modes.get(current_job["chan"], 0) + 1.0)
                     self.running_jobs[jid] = time.time() + actual_wait
                 except Exception:
                     self.running_jobs[jid] = time.time() + 120 * 60

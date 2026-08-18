@@ -52,8 +52,6 @@ DEFAULT_DATA = {
     "channel_meta": {},
     "humanizer_settings": {
         "simulate_typing": True,
-        "cooldown_buffer_min_hrs": 1.0,   # 1 hour extra
-        "cooldown_buffer_max_hrs": 3.0,   # 3 hours extra
         "sleep_hours_enabled": False,
         "sleep_start_hour": 1,
         "sleep_end_hour": 8
@@ -72,10 +70,13 @@ DEFAULT_DATA = {
 
 
 class AutomationEngine:
-    def __init__(self, data_file="app_data.json", log_callback=None, on_data_change=None, enable_firestore=None):
+    def __init__(self, data_file="app_data.json", log_callback=None, on_data_change=None, enable_firestore=None, user=None):
         self.data_file = data_file
         self._log_callback = log_callback
         self._on_data_change = on_data_change
+        # When set, the Firestore doc becomes per-user ("user-<name>") so
+        # every account's configs/settings stay isolated.
+        self._user = user or ""
 
         if enable_firestore is None:
             enable_firestore = os.getenv(FIREBASE_ENABLED_ENV, "1").lower() not in ("0", "false", "no")
@@ -108,9 +109,10 @@ class AutomationEngine:
     def _init_firestore(self):
         """Return a Firestore client, or None to fall back to app_data.json.
 
-        Credentials come from FIREBASE_SERVICE_ACCOUNT_PATH (env) or the
-        auto-detected server/firebase-service-account.json file. Returns None
-        when the SDK is missing, no credentials exist, or init fails.
+        Credentials come from FIREBASE_SERVICE_ACCOUNT_JSON, then
+        FIREBASE_SERVICE_ACCOUNT_PATH, then the auto-detected
+        server/firebase-service-account.json file. Returns None when the SDK is
+        missing, no credentials exist, or init fails.
         """
         if not self._enable_firestore:
             return None
@@ -121,20 +123,26 @@ class AutomationEngine:
             self.log("Firebase Admin SDK not installed — using local data file.")
             return None
 
+        credential_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
         cred_path = os.getenv(FIREBASE_CREDENTIAL_ENV, "").strip()
-        if not cred_path:
+        if not credential_json and not cred_path:
             default_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "firebase-service-account.json")
             if os.path.exists(default_path):
                 cred_path = default_path
-        if not cred_path or not os.path.exists(cred_path):
+        if not credential_json and (not cred_path or not os.path.exists(cred_path)):
             self.log("No Firebase service account found — using local data file.")
             return None
 
         try:
+            certificate = credentials.Certificate(
+                json.loads(credential_json) if credential_json else cred_path
+            )
             if not firebase_admin._apps:
-                firebase_admin.initialize_app(credentials.Certificate(cred_path))
+                firebase_admin.initialize_app(certificate)
             self._firestore_collection = os.getenv(FIRESTORE_COLLECTION_ENV, "discordautomsg") or "discordautomsg"
             self._firestore_doc = os.getenv(FIRESTORE_DOC_ENV, "app_data") or "app_data"
+            if self._user:
+                self._firestore_doc = f"user-{self._user}"
             return firestore.client()
         except Exception as e:
             self.log(f"Firebase initialization failed ({e}) — using local data file.")
@@ -273,23 +281,12 @@ class AutomationEngine:
     # ------------------------------------------------------------------
     # Humanizer settings
     # ------------------------------------------------------------------
-    def save_humanizer_settings(self, buf_min_entry_text, buf_max_entry_text, typing_var, sleep_var):
-        try:
-            b_min_hrs = max(0.1, float(buf_min_entry_text.strip()))
-            b_max_hrs = max(b_min_hrs, float(buf_max_entry_text.strip()))
-        except Exception:
-            b_min_hrs, b_max_hrs = 1.0, 3.0
-
+    def save_humanizer_settings(self, typing_var):
         self.data["humanizer_settings"] = {
             "simulate_typing": typing_var,
-            "cooldown_buffer_min_hrs": b_min_hrs,
-            "cooldown_buffer_max_hrs": b_max_hrs,
-            "sleep_hours_enabled": sleep_var,
-            "sleep_start_hour": 1,
-            "sleep_end_hour": 8
         }
         self.auto_save()
-        self.log(f"🛡️ Settings Saved: Extra Delay = +{b_min_hrs:.1f}h to +{b_max_hrs:.1f}h past timeout | Sleep={sleep_var}")
+        self.log(f"🛡️ Settings Saved: Simulate typing = {typing_var}")
 
     # ------------------------------------------------------------------
     # Job CRUD (mutations identical to add_or_update_job / delete_job)
@@ -453,41 +450,6 @@ class AutomationEngine:
         return True
 
     # ------------------------------------------------------------------
-    # 1-3 HOUR RANDOM GAP CALCULATION PAST TIMEOUT
-    # ------------------------------------------------------------------
-    def calculate_human_interval(self, base_seconds):
-        h_sett = self.data.get("humanizer_settings", {})
-
-        # 1. Sleep Window Check (Optional)
-        if h_sett.get("sleep_hours_enabled", False):
-            current_hour = datetime.now().hour
-            s_start = h_sett.get("sleep_start_hour", 1)
-            s_end = h_sett.get("sleep_end_hour", 8)
-            if s_start <= current_hour < s_end:
-                wake_delay = ((s_end - current_hour) * 3600) + random.uniform(180, 600)
-                self.log(f"🌙 Sleep Window Active ({s_start}AM-{s_end}AM). Pausing until morning...")
-                return wake_delay
-
-        # 2. Add 1.0 to 3.0 random hours extra past cooldown
-        buf_min_hrs = float(h_sett.get("cooldown_buffer_min_hrs", 1.0))
-        buf_max_hrs = float(h_sett.get("cooldown_buffer_max_hrs", 3.0))
-
-        if base_seconds >= 1800:  # For 30m+ intervals
-            # Pick random extra seconds between 1 hour and 3 hours
-            extra_seconds = random.uniform(buf_min_hrs * 3600.0, buf_max_hrs * 3600.0)
-            total_seconds = base_seconds + extra_seconds
-
-            total_hrs = total_seconds / 3600.0
-            base_hrs = base_seconds / 3600.0
-            extra_hrs = extra_seconds / 3600.0
-
-            self.log(f"⏱️ Next cycle in ~{total_hrs:.2f} hrs ({base_hrs:.1f}h timeout + {extra_hrs:.2f}h random gap).")
-            return total_seconds
-        else:
-            variance = base_seconds * 0.15
-            return max(5.0, base_seconds + random.uniform(-variance, variance))
-
-    # ------------------------------------------------------------------
     # Worker thread (per job)
     # ------------------------------------------------------------------
     def worker(self, job, initial_delay=0):
@@ -528,17 +490,17 @@ class AutomationEngine:
                 # Send with typing indicator
                 self.send_humanized_message(token, cid, final_msg, web_url, current_job['acc'], v_tag)
 
-                # Compute next run (Base 2 hrs + 1 to 3 hours random gap).
+                # Compute next run: the configured interval as-is, floored by
+                # slowmode + 1s.
                 # Slowmode is honored from the live fetch (token jobs) or the
                 # persisted channel_meta (webhook jobs — no token to query).
                 try:
                     ival = float(current_job["int"])
                     base_wait = (ival * 60.0) if current_job["unit"] == "Min" else ival
 
-                    human_wait = self.calculate_human_interval(base_wait)
                     meta_slow = self.data.get("channel_meta", {}).get(current_job["chan"], {}).get("rate_limit_per_user", 0)
                     slow = max(self.slow_modes.get(current_job["chan"], 0), meta_slow)
-                    actual_wait = max(human_wait, slow + 1.0)
+                    actual_wait = max(base_wait, slow + 1.0)
                     self.running_jobs[jid] = time.time() + actual_wait
                 except Exception:
                     self.running_jobs[jid] = time.time() + 120 * 60
@@ -552,7 +514,7 @@ class AutomationEngine:
         if self.running:
             return False
         self.running = True
-        self.log(">>> ENGINE STARTING (1-3HR RANDOM GAP ACTIVE) <<<")
+        self.log(">>> ENGINE STARTING <<<")
 
         stagger_interval = 2.0
         for idx, job in enumerate(self.data["jobs"]):

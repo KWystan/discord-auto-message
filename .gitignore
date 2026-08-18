@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+.vercel/
 
 # Python
 server/venv/
@@ -18,6 +19,10 @@ server/*firebase-adminsdk*.json
 
 # App data — contains tokens, webhooks, channel IDs (runtime state, not source)
 app_data.json
+app_data-*.json
+
+# Local user accounts fallback (password hashes) when Firebase is unavailable
+server/users.json
 
 # Agent instruction files
 AGENTS.md

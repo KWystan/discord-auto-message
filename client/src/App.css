@@ -150,10 +150,164 @@
   color: var(--text-faint);
 }
 
+/* ── Login screen ─────────────────────────────────────────────────────── */
+.login-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 10vh;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 1.6rem 1.7rem 1.5rem;
+}
+
+.login-brand {
+  margin-bottom: 1.2rem;
+}
+
+.login-title {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.login-sub {
+  display: block;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-top: 0.15rem;
+}
+
+.login-mode-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.login-mode {
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0.15rem 0.25rem;
+  border-radius: 4px;
+}
+
+.login-mode:hover {
+  color: var(--text-muted);
+}
+
+.login-mode.active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.login-mode-sep {
+  color: var(--border-strong);
+}
+
+.login-field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.login-field-label {
+  display: block;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-faint);
+  margin-bottom: 0.3rem;
+}
+
+.login-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  box-sizing: border-box;
+}
+
+.login-input::placeholder {
+  color: var(--text-faint);
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: var(--text);
+}
+
+.login-pw-wrap {
+  position: relative;
+  display: block;
+}
+
+.login-pw-wrap .login-input {
+  padding-right: 2.4rem;
+}
+
+.login-eye {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.login-eye:hover {
+  background: var(--surface);
+}
+
+.login-error {
+  margin: 0.2rem 0 1rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--danger, #e5484d);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--danger, #e5484d) 8%, transparent);
+  color: var(--danger, #e5484d);
+  font-size: 12px;
+}
+
+.login-submit {
+  width: 100%;
+  height: 38px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.login-foot {
+  margin-top: 1rem;
+  text-align: center;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
 /* ── Layout: sidebar + main ───────────────────────────────────────────── */
 .layout-sidebar {
   display: grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: 280px 1fr;
   gap: 1.25rem;
   align-items: start;
 }
@@ -177,6 +331,83 @@
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
+}
+
+/* ── Account tabs (Chrome-style, in the engine bar) ──────────────────── */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tab:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.tab.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.55;
+}
+
+.tab-close:hover {
+  background: rgba(128, 128, 128, 0.25);
+  opacity: 1;
+}
+
+.tab-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 7px;
+  background: none;
+  color: var(--text-muted);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.tab-add:hover {
+  border-color: var(--text);
+  color: var(--text);
 }
 
 /* ── Toast ────────────────────────────────────────────────────────────── */
@@ -554,6 +785,12 @@
   flex: 0 0 auto;
 }
 
+.int-num {
+  width: 52px !important;
+  height: 34px;
+  text-align: center;
+}
+
 .int-input select {
   width: 180px;
   flex: 0 0 auto;
@@ -702,95 +939,100 @@
   gap: 0.6rem;
   margin-top: 1.1rem;
 }
-
-/* ── Compose message panel ────────────────────────────────────────────── */
-.format-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  margin: -0.2rem 0 1rem;
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 11px;
-  color: var(--text-faint);
-}
-
-.format-bar .fmt,
-.format-bar .fmt-size {
-  padding: 0.28rem 0.6rem;
-  border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.format-bar .fmt:hover,
-.format-bar .fmt-size:hover {
-  border-color: var(--text);
-  color: var(--text);
-}
-
-.format-bar .fmt-bold {
-  font-weight: 800;
-}
-
-.format-bar .fmt-italic {
-  font-style: italic;
-}
-
-.format-bar .fmt-underline {
-  text-decoration: underline;
-}
-
-.format-bar .fmt-size {
-  width: auto;
-}
-
-.format-sep {
-  width: 1px;
-  height: 18px;
-  background: var(--border);
-}
-.composer-msg-label {
-  display: block;
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-faint);
-}
-
-.composer-textarea {
-  display: block;
-  width: 100%;
-  min-height: 110px;
-  margin: 0.3rem 0 1rem;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text);
-  font-size: 13px;
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  resize: vertical;
-}
-
-.composer-textarea:hover {
-  border-color: var(--border-strong);
-}
-
-.composer-textarea:focus {
-  outline: none;
-  border-color: var(--text);
-}
-
 .composer-foot {
   display: flex;
   justify-content: flex-end;
   gap: 0.6rem;
   margin-top: 1rem;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: var(--surface);
+}
+
+.tb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tb:hover {
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--bg);
+}
+
+.tb-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 0.15rem;
+}
+
+.md-editor {
+  min-height: 150px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0 0 6px 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Geist', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  outline: none;
+}
+
+.md-editor:focus {
+  border-color: var(--text);
+}
+
+.md-editor b,
+.md-editor strong {
+  font-weight: 700;
+}
+
+.md-editor i,
+.md-editor em {
+  font-style: italic;
+}
+
+.md-editor u {
+  text-decoration: underline;
+}
+
+.md-editor s,
+.md-editor del {
+  text-decoration: line-through;
+}
+
+.md-editor ul,
+.md-editor ol {
+  margin: 0.3rem 0;
+  padding-left: 1.5rem;
+}
+
+.md-editor li {
+  margin: 0.15rem 0;
 }
 
 .composer-panel .form-row input,
@@ -821,8 +1063,47 @@
 .token-list {
   display: flex;
   flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.token-form {
+  display: flex;
   gap: 0.4rem;
-  margin-bottom: 0.8rem;
+  align-items: stretch;
+}
+
+.token-form input {
+  height: 30px;
+  padding: 0 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  min-width: 0;
+}
+
+.token-form input:focus {
+  outline: none;
+  border-color: var(--text);
+}
+
+.token-nick {
+  width: 88px;
+  flex: 0 0 auto;
+}
+
+.token-val {
+  flex: 1;
+}
+
+.token-save {
+  height: 30px;
+  padding: 0 0.8rem;
+  font-size: 12px;
+  flex: 0 0 auto;
 }
 
 .token-chip {
@@ -968,17 +1249,28 @@
 }
 
 .auth-logout {
-  border: none;
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
   color: var(--text-faint);
-  font-size: 11px;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
   line-height: 1;
   cursor: pointer;
-  padding: 2px;
 }
 
 .auth-logout:hover {
-  color: var(--text);
+  border-color: var(--danger, #e5484d);
+  color: var(--danger, #e5484d);
+}
+
+.auth-logout-icon {
+  font-size: 11px;
 }
 
 /* ── Server panel (all channels, click to configure) ──────────────────── */
@@ -1037,6 +1329,38 @@
   gap: 0.85rem;
 }
 
+.custom-channel-add {
+  width: 100%;
+  height: 28px;
+  font-size: 11px;
+  margin-bottom: 0.85rem;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-muted);
+  background: none;
+}
+
+.custom-channel-add:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.server-channel-remove {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.server-channel-remove:hover {
+  background: rgba(128, 128, 128, 0.25);
+  color: var(--ink);
+}
+
 .server-group {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1081,6 +1405,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 600;
 }
 
 .server-channel-slow {
@@ -1091,6 +1416,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 0.1rem 0.5rem;
+  white-space: nowrap;
 }
 
 .server-channel-none {

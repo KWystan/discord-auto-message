@@ -1,19 +1,34 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as api from './api'
 
-function TokenPanel() {
+function TokenPanel({ onTokensChange, onTokenSaved, focusRequest }) {
   const [tokens, setTokens] = useState({})
   const [nick, setNick] = useState('main')
   const [token, setToken] = useState('')
+  const [editing, setEditing] = useState(false)
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
+  const nickRef = useRef(null)
+  const tokenRef = useRef(null)
+
+  useEffect(() => {
+    if (focusRequest > 0) {
+      setEditing(true)
+      setToken('')
+      nickRef.current?.focus()
+    }
+  }, [focusRequest])
 
   const load = () => {
-    api.getManager().then((m) => setTokens(m.tokens || {})).catch(() => {})
+    api.getManager().then((m) => {
+      setTokens(m.tokens || {})
+      onTokensChange?.()
+    }).catch(() => {})
   }
 
   useEffect(() => {
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const save = () => {
@@ -29,21 +44,25 @@ function TokenPanel() {
       .storeManagerEntry('tokens', n, t)
       .then(() => {
         setToken('')
-        setNote(`Token saved as '${n}' — channels without a webhook now post through it.`)
+        setEditing(false)
+        setNote(`Token saved as '${n}'.`)
         load()
+        onTokenSaved?.(n)
       })
       .catch((e) => setError(e.message))
   }
 
-  const remove = (n) => {
-    api
-      .deleteManagerEntry('tokens', n)
-      .then(() => {
-        setNote(`Removed token '${n}'.`)
-        load()
-      })
-      .catch((e) => setError(e.message))
+  const onSaveClick = () => {
+    if (!editing && tokens[nick]) {
+      setEditing(true)
+      setToken('')
+      tokenRef.current?.focus()
+      return
+    }
+    save()
   }
+
+  const hasToken = Boolean(tokens[nick])
 
   return (
     <section className="panel">
@@ -51,42 +70,40 @@ function TokenPanel() {
         <div>
           <h2 className="panel-title">Account token</h2>
         </div>
-        <span className="panel-hint">legacy posting</span>
+        <span className="panel-hint" title="Posts as this account (self-bot — ban risk)">legacy posting</span>
       </div>
 
-      <p className="panel-note">
-        Used for channels without a webhook. Posts as this account (self-bot — ban risk, same as the legacy
-        desktop app).
-      </p>
-
-      <div className="form-row">
-        <label>
-          Nickname
-          <input value={nick} onChange={(e) => setNick(e.target.value)} spellCheck={false} />
-        </label>
-        <label>
-          Token
-          <input value={token} onChange={(e) => setToken(e.target.value)} type="password" spellCheck={false} />
-        </label>
+      <div className="token-form">
+        <input
+          ref={nickRef}
+          className="token-nick"
+          value={nick}
+          onChange={(e) => { setNick(e.target.value); setEditing(false) }}
+          placeholder="nickname"
+          spellCheck={false}
+        />
+        <input
+          ref={tokenRef}
+          className="token-val"
+          type={editing ? 'password' : 'text'}
+          value={editing ? token : (tokens[nick] || '')}
+          onChange={(e) => setToken(e.target.value)}
+          onFocus={() => {
+            if (!editing) {
+              setEditing(true)
+              setToken('')
+            }
+          }}
+          placeholder={hasToken ? '••••••••••••••••' : 'token'}
+          spellCheck={false}
+        />
+        <button className="btn primary token-save" onClick={onSaveClick}>
+          {hasToken ? 'Update' : 'Save'}
+        </button>
       </div>
-
-      {Object.keys(tokens).length > 0 && (
-        <div className="token-list">
-          {Object.keys(tokens).map((n) => (
-            <span key={n} className="token-chip">
-              {n}
-              <button className="token-chip-x" onClick={() => remove(n)}>✕</button>
-            </span>
-          ))}
-        </div>
-      )}
 
       {note && <p className="panel-note ok">{note}</p>}
       {error && <div className="panel-error">{error}</div>}
-
-      <div className="composer-foot">
-        <button className="btn primary" onClick={save}>Save Token</button>
-      </div>
     </section>
   )
 }

@@ -1,0 +1,3 @@
+# Vercel's Python runtime installs dependencies from the repository root.
+# Keep the canonical backend dependency list in server/requirements.txt.
+-r server/requirements.txt

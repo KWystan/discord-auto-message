@@ -125,6 +125,19 @@ def _save_local_users(data):
         json.dump(data, f, indent=4)
 
 
+def _storage_available():
+    """Return True if either Firestore or the local users file is usable."""
+    db = _fs()
+    if db is not None:
+        return True
+    try:
+        with open(USERS_FILE, "a"):
+            pass
+        return True
+    except OSError:
+        return False
+
+
 def _get_user_doc(username):
     db = _fs()
     if db is not None:
@@ -146,6 +159,21 @@ def _set_user(username, payload):
     data = _local_users()
     data[username] = payload
     _save_local_users(data)
+
+
+def _require_storage():
+    """Check that user storage is available — raises on Vercel without Firebase."""
+    db = _fs()
+    if db is not None:
+        return
+    try:
+        with open(USERS_FILE, "a"):
+            pass
+    except OSError:
+        raise RuntimeError(
+            "User storage not available. Set FIREBASE_SERVICE_ACCOUNT_JSON "
+            "as a Vercel environment variable to enable Firestore user storage."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -229,9 +257,16 @@ def auth_register():
         return jsonify({"error": "Username must be 2-32 characters (letters, numbers, . _ -)."}), 400
     if len(password) < 4:
         return jsonify({"error": "Password must be at least 4 characters."}), 400
+    try:
+        _require_storage()
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 503
     if _get_user_doc(username):
         return jsonify({"error": "Username already taken."}), 409
-    _set_user(username, {"password_hash": generate_password_hash(password)})
+    try:
+        _set_user(username, {"password_hash": generate_password_hash(password)})
+    except Exception as e:
+        return jsonify({"error": f"Failed to save user: {e}"}), 500
     session["user"] = username
     return jsonify({"user": username}), 201
 
@@ -241,7 +276,10 @@ def auth_login():
     body = request.get_json(force=True) or {}
     username = str(body.get("username", "")).strip()
     password = str(body.get("password", ""))
-    doc = _get_user_doc(username)
+    try:
+        doc = _get_user_doc(username)
+    except Exception:
+        doc = None
     if not doc or not check_password_hash(doc.get("password_hash", ""), password):
         return jsonify({"error": "Invalid username or password."}), 401
     session["user"] = username

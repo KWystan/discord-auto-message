@@ -74,13 +74,14 @@ The repository root is the Vercel project root. Do **not** set Vercel's Root Dir
 - `/api/*` rewrites to `api/index.py`, which imports the Flask app from `server/api.py`
 - all other routes fall back to the React `index.html`
 
-Set these Vercel environment variables:
+Set these Vercel environment variables (all required for the app to work):
 
 - `SECRET_KEY` — a stable random session key
 - `FIREBASE_ENABLED=1`
-- `FIREBASE_SERVICE_ACCOUNT_JSON` — the complete Firebase service-account JSON, pasted as one secret value
+- `FIREBASE_SERVICE_ACCOUNT_JSON` — **required** — paste the full JSON contents of your `server/firebase-service-account.json` as one secret value. Without this, user accounts and app data can't be stored on Vercel (the filesystem is read-only)
 - `FIRESTORE_COLLECTION=discordautomsg`
-- `DISCORD_GUILD_ID` and `DISCORD_CHANNEL_ID`
+- `DISCORD_GUILD_ID` = `571992648190263317`
+- `DISCORD_CHANNEL_ID` = `997645910769160202`
 
 The service-account file is intentionally gitignored; use `FIREBASE_SERVICE_ACCOUNT_JSON` on Vercel instead. The root `requirements.txt` includes `server/requirements.txt` so the Python Function gets the same backend dependencies.
 

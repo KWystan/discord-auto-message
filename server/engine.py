@@ -14,6 +14,10 @@ sinks were replaced:
 
 The engine shares the same app_data.json schema as the desktop app and writes
 it with the same auto_save() semantics (full JSON dump, indent=4).
+
+Persistence is Firestore-backed when Firebase credentials are available
+(server/firebase-service-account.json or FIREBASE_SERVICE_ACCOUNT_PATH) and
+falls back to the local app_data.json full-JSON-dump semantics otherwise.
 """
 
 import copy
@@ -27,6 +31,17 @@ from datetime import datetime
 
 import requests
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
+FIREBASE_ENABLED_ENV = "FIREBASE_ENABLED"
+FIREBASE_CREDENTIAL_ENV = "FIREBASE_SERVICE_ACCOUNT_PATH"
+FIRESTORE_COLLECTION_ENV = "FIRESTORE_COLLECTION"
+FIRESTORE_DOC_ENV = "FIRESTORE_DOC"
+
 DEFAULT_DATA = {
     "tokens": {},
     "channels": {},
@@ -34,6 +49,7 @@ DEFAULT_DATA = {
     "replacers": {},
     "jobs": [],
     "task_locks": {},
+    "channel_meta": {},
     "humanizer_settings": {
         "simulate_typing": True,
         "cooldown_buffer_min_hrs": 1.0,   # 1 hour extra
@@ -56,11 +72,19 @@ DEFAULT_DATA = {
 
 
 class AutomationEngine:
-    def __init__(self, data_file="app_data.json", log_callback=None, on_data_change=None):
+    def __init__(self, data_file="app_data.json", log_callback=None, on_data_change=None, enable_firestore=None):
         self.data_file = data_file
-        self.data = self.load_data_on_startup()
         self._log_callback = log_callback
         self._on_data_change = on_data_change
+
+        if enable_firestore is None:
+            enable_firestore = os.getenv(FIREBASE_ENABLED_ENV, "1").lower() not in ("0", "false", "no")
+        self._enable_firestore = bool(enable_firestore)
+        self._save_lock = threading.Lock()
+        self.data = {}
+        self._firestore = self._init_firestore()
+
+        self.data = self.load_data_on_startup()
 
         self.running = False
         self.slow_modes = {}
@@ -81,25 +105,91 @@ class AutomationEngine:
     # ------------------------------------------------------------------
     # Persistence
     # ------------------------------------------------------------------
+    def _init_firestore(self):
+        """Return a Firestore client, or None to fall back to app_data.json.
+
+        Credentials come from FIREBASE_SERVICE_ACCOUNT_PATH (env) or the
+        auto-detected server/firebase-service-account.json file. Returns None
+        when the SDK is missing, no credentials exist, or init fails.
+        """
+        if not self._enable_firestore:
+            return None
+        try:
+            import firebase_admin
+            from firebase_admin import credentials, firestore
+        except Exception:
+            self.log("Firebase Admin SDK not installed — using local data file.")
+            return None
+
+        cred_path = os.getenv(FIREBASE_CREDENTIAL_ENV, "").strip()
+        if not cred_path:
+            default_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "firebase-service-account.json")
+            if os.path.exists(default_path):
+                cred_path = default_path
+        if not cred_path or not os.path.exists(cred_path):
+            self.log("No Firebase service account found — using local data file.")
+            return None
+
+        try:
+            if not firebase_admin._apps:
+                firebase_admin.initialize_app(credentials.Certificate(cred_path))
+            self._firestore_collection = os.getenv(FIRESTORE_COLLECTION_ENV, "discordautomsg") or "discordautomsg"
+            self._firestore_doc = os.getenv(FIRESTORE_DOC_ENV, "app_data") or "app_data"
+            return firestore.client()
+        except Exception as e:
+            self.log(f"Firebase initialization failed ({e}) — using local data file.")
+            return None
+
     def load_data_on_startup(self):
         default_data = copy.deepcopy(DEFAULT_DATA)
-        if os.path.exists(self.data_file):
+        content = None
+        from_firestore = False
+
+        if self._firestore is not None:
+            try:
+                doc = self._firestore.collection(self._firestore_collection).document(self._firestore_doc).get()
+                if doc.exists:
+                    content = doc.to_dict()
+                    from_firestore = True
+                    self.log("Loaded data from Firestore.")
+            except Exception as e:
+                self.log(f"Firestore read failed ({e}) — falling back to local file.")
+
+        if content is None and os.path.exists(self.data_file):
             try:
                 with open(self.data_file, "r") as f:
                     content = json.load(f)
-                    for key, val in default_data.items():
-                        if key not in content:
-                            content[key] = val
-                    for job in content.get("jobs", []):
-                        if "id" not in job:
-                            job["id"] = str(random.randint(100000, 999999))
-                    return content
             except Exception:
                 pass
-        return default_data
+
+        if content is None:
+            content = {}
+
+        for key, val in default_data.items():
+            if key not in content:
+                content[key] = val
+        for job in content.get("jobs", []):
+            if "id" not in job:
+                job["id"] = str(random.randint(100000, 999999))
+
+        if self._firestore is not None and not from_firestore:
+            try:
+                self._firestore.collection(self._firestore_collection).document(self._firestore_doc).set(content)
+                self.log("Seeded Firestore with local data.")
+            except Exception as e:
+                self.log(f"Firestore seed failed ({e}).")
+
+        return content
 
     def auto_save(self):
         self.data["task_locks"] = self.task_locks
+        if self._firestore is not None:
+            try:
+                with self._save_lock:
+                    self._firestore.collection(self._firestore_collection).document(self._firestore_doc).set(self.data)
+                return
+            except Exception as e:
+                self.log(f"Firestore write failed ({e}) — writing local file instead.")
         with open(self.data_file, "w") as f:
             json.dump(self.data, f, indent=4)
 
@@ -141,8 +231,21 @@ class AutomationEngine:
     # ------------------------------------------------------------------
     # Manager entries (tokens / channels / webhooks / replacers)
     # ------------------------------------------------------------------
+    def extract_channel_id(self, val):
+        """Reduce a pasted Discord channel URL to its bare numeric ID."""
+        val = str(val).strip()
+        m = re.search(r"/channels/\d+/(\d+)", val)   # message link: /channels/GUILD/CHANNEL
+        if m:
+            return m.group(1)
+        m = re.search(r"/channels/(\d+)", val)        # API endpoint: /api/vN/channels/ID/...
+        if m:
+            return m.group(1)
+        return val
+
     def store_manager_entry(self, cat, name, val):
         if name and val:
+            if cat == "channels":
+                val = self.extract_channel_id(val)
             self.data[cat][name] = val
             self.auto_save()
             self.log(f"Saved {cat[:-1]}: {name}")
@@ -315,23 +418,28 @@ class AutomationEngine:
         h_sett = self.data.get("humanizer_settings", {})
         simulate_typing = h_sett.get("simulate_typing", True)
 
-        if simulate_typing:
+        # Webhooks can't trigger typing indicators — only the token path can.
+        if simulate_typing and not web_url:
             typing_sec = self.calculate_human_typing_seconds(message_text)
             self.trigger_typing_indicator(token, cid)
             time.sleep(typing_sec)
 
         try:
-            res = requests.post(f"https://discord.com/api/v10/channels/{cid}/messages",
-                                headers={"Authorization": token, "Content-Type": "application/json"},
-                                json={"content": message_text}, timeout=10)
+            if web_url:
+                # Post directly through the webhook (no account token needed).
+                m = re.match(r"https://discord\.com/api/(?:v\d+/)?webhooks/(\d+)/([\w-]+)", web_url)
+                if not m:
+                    self.log(f"FAIL [{acc_name}]: Invalid webhook URL.")
+                    return True
+                res = requests.post(
+                    f"https://discord.com/api/v10/webhooks/{m.group(1)}/{m.group(2)}",
+                    json={"content": message_text}, timeout=10)
+            else:
+                res = requests.post(f"https://discord.com/api/v10/channels/{cid}/messages",
+                                    headers={"Authorization": token, "Content-Type": "application/json"},
+                                    json={"content": message_text}, timeout=10)
             if res.status_code == 200:
                 self.log(f"SENT [{acc_name}] {variant_info}: {message_text[:30]}...")
-                if web_url:
-                    try:
-                        secure_log = self.clean_sensitive_data(f"✅ Sent {variant_info}: {message_text[:40]}...")
-                        requests.post(web_url, json={"content": secure_log}, timeout=4)
-                    except Exception:
-                        pass
             elif res.status_code == 429:
                 retry = res.json().get("retry_after", 5)
                 self.log(f"⚠️ RATE LIMIT ({acc_name}): Pausing {retry}s")
@@ -400,12 +508,14 @@ class AutomationEngine:
                 cid = self.data["channels"].get(current_job["chan"])
                 web_url = self.data["webhooks"].get(current_job["web"]) if current_job["web"] != "None" else None
 
-                if not token or not cid:
+                # Webhook jobs post without any account token; token jobs need
+                # both an auth token and a channel ID.
+                if not web_url and (not token or not cid):
                     self.log(f"Worker {jid} error: Auth/Channel missing.")
                     self.running_jobs[jid] = time.time() + 10
                     continue
 
-                if current_job["chan"] not in self.slow_modes:
+                if token and current_job["chan"] not in self.slow_modes:
                     self.get_slow_mode(token, cid, current_job["chan"])
 
                 # Pick variant from '---' pool
@@ -418,13 +528,17 @@ class AutomationEngine:
                 # Send with typing indicator
                 self.send_humanized_message(token, cid, final_msg, web_url, current_job['acc'], v_tag)
 
-                # Compute next run (Base 2 hrs + 1 to 3 hours random gap)
+                # Compute next run (Base 2 hrs + 1 to 3 hours random gap).
+                # Slowmode is honored from the live fetch (token jobs) or the
+                # persisted channel_meta (webhook jobs — no token to query).
                 try:
                     ival = float(current_job["int"])
                     base_wait = (ival * 60.0) if current_job["unit"] == "Min" else ival
 
                     human_wait = self.calculate_human_interval(base_wait)
-                    actual_wait = max(human_wait, self.slow_modes.get(current_job["chan"], 0) + 1.0)
+                    meta_slow = self.data.get("channel_meta", {}).get(current_job["chan"], {}).get("rate_limit_per_user", 0)
+                    slow = max(self.slow_modes.get(current_job["chan"], 0), meta_slow)
+                    actual_wait = max(human_wait, slow + 1.0)
                     self.running_jobs[jid] = time.time() + actual_wait
                 except Exception:
                     self.running_jobs[jid] = time.time() + 120 * 60

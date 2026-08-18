@@ -1,0 +1,33 @@
+// Hardcoded game-server channel list (channel id -> display name). No scan
+// permission needed to list them; /api/server is still fetched to enrich
+// slowmode + webhook state.
+export const HARDCODED_CHANNELS = [
+  { id: '742547014197313576', name: 'crystal' },
+  { id: '846673193426354176', name: 'platform' },
+  { id: '846661246303469598', name: 'sign' },
+  { id: '846671811223355402', name: 'door' },
+  { id: '782722952256159754', name: 'machine' },
+  { id: '782718523629633567', name: 'wallpaper' },
+  { id: '782718823488290826', name: 'blast' },
+  { id: '1104057271215984741', name: 'block' },
+  { id: '806523338797219860', name: 'jammer' },
+  { id: '774455258407370752', name: 'paint' },
+  { id: '889189591083520060', name: 'mines' },
+  { id: '782718975091933214', name: 'music' },
+  { id: '806499108801478676', name: 'steam' },
+  { id: '880294786236579860', name: 'provider' },
+  { id: '900812336116416563', name: 'adventure' },
+  { id: '1324916884205998242', name: 'dungeon' },
+  { id: '733053014163587145', name: 'starship blast' },
+  { id: '878779329864167504', name: 'locks' },
+  { id: '782720570143277116', name: 'Ances' },
+  { id: '734717853965615124', name: 'Worlds' },
+  { id: '967097602153791528', name: 'G4g' },
+  { id: '733052554820452423', name: 'Startool' },
+  { id: '879846165196181616', name: 'Unicorn' },
+  { id: '806456760592105483', name: 'Summer' },
+  { id: '709363155309953105', name: 'FISH ITEM' },
+  { id: '846678373635457024', name: 'Farmable' },
+  { id: '806499467711742002', name: 'TREASURE' },
+  { id: '1457346302101950602', name: 'ADVENTURE' },
+]

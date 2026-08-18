@@ -1,50 +1,38 @@
 import { useState } from 'react'
+import { fmtSlow } from './api'
+import { INTERVAL_OPTIONS, fmtIntervalMin } from './intervals'
 
-function JobEditor({ job, manager, onSave, onStoreReplacer, onClose }) {
+function JobEditor({ job, channel, onSave, onClose }) {
   const isEdit = Boolean(job)
-  const [acc, setAcc] = useState(job?.acc ?? '')
-  const [chan, setChan] = useState(job?.chan ?? '')
-  const [web, setWeb] = useState(job?.web ?? 'None')
+  const chanName = job?.chan ?? channel?.name ?? ''
+  const slow = channel?.rate_limit_per_user
   const [msg, setMsg] = useState(job?.msg ?? '')
-  const [intv, setIntv] = useState(job?.int ?? '120')
-  const [unit, setUnit] = useState(job?.unit ?? 'Min')
+  const [intv, setIntv] = useState(job?.int ?? '60')
   const [mode, setMode] = useState('wait')
   const [error, setError] = useState('')
-  const [repMode, setRepMode] = useState('store')
-  const [findTxt, setFindTxt] = useState('')
-  const [repTxt, setRepTxt] = useState('')
-  const [repMsg, setRepMsg] = useState('')
-
-  const tokenNames = Object.keys(manager.tokens)
-  const channelNames = Object.keys(manager.channels)
-  const webhookNames = ['None', ...Object.keys(manager.webhooks)]
 
   const insert = (text) => setMsg((m) => m + text)
 
-  const execReplacer = () => {
-    if (!findTxt) {
-      setRepMsg('Find text is required.')
-      return
-    }
-    if (repMode === 'literal') {
-      // Verbatim desktop behavior: literal replace on the message text.
-      setMsg((m) => m.replace(findTxt, repTxt))
-      setRepMsg(`Executed literal replace: '${findTxt}' -> '${repTxt}'`)
-      return
-    }
-    onStoreReplacer(findTxt, repTxt).then((ok) => {
-      setRepMsg(ok ? `Saved replacer: ${findTxt}` : 'Failed to save replacer.')
-    })
-  }
-
   const submit = () => {
-    if (!acc || !chan || !msg) {
-      setError('Ensure Account, Channel, and Message are filled.')
+    if (!msg.trim()) {
+      setError('Message is required.')
       return
     }
+    const baseSec = (parseFloat(intv) || 60) * 60
+    const effSec = Math.ceil(Math.max(baseSec, 3600) / 60) * 60
+    if (effSec > baseSec) setError(`Interval raised to ${effSec / 60} min (60m minimum).`)
     onSave(
-      { acc, chan, web, msg, int: intv, unit, mode },
+      {
+        acc: job?.acc ?? 'webhook',
+        chan: chanName,
+        web: job?.web ?? 'None',
+        msg,
+        int: `${effSec / 60}`,
+        unit: 'Min',
+        mode,
+      },
       isEdit,
+      channel,
     ).then((ok) => {
       if (!ok) setError('Save failed — see message above.')
     })
@@ -53,36 +41,17 @@ function JobEditor({ job, manager, onSave, onStoreReplacer, onClose }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{isEdit ? `edit task ${job.id}` : 'add to queue'}</h2>
+        <h2>{isEdit ? `edit task ${job.id}` : `auto message → #${chanName}`}</h2>
 
-        <label>
-          Account
-          <select value={acc} onChange={(e) => setAcc(e.target.value)}>
-            <option value="">— select —</option>
-            {tokenNames.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Channel
-          <select value={chan} onChange={(e) => setChan(e.target.value)}>
-            <option value="">— select —</option>
-            {channelNames.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Log to Webhook
-          <select value={web} onChange={(e) => setWeb(e.target.value)}>
-            {webhookNames.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </label>
+        <div className="editor-context">
+          <span className="editor-context-label">Channel</span>
+          <span className="editor-context-value">#{chanName}</span>
+          {slow != null && slow > 0 && (
+            <span className="editor-context-slow">
+              channel slowmode: {fmtSlow(slow)} — sends are spaced to respect it
+            </span>
+          )}
+        </div>
 
         <label>
           Message <span className="hint">(separate pools with ---)</span>
@@ -101,34 +70,16 @@ function JobEditor({ job, manager, onSave, onStoreReplacer, onClose }) {
           <button type="button" onClick={() => insert('\n---\n')}>+ '---' (Separator)</button>
         </div>
 
-        <div className="replacer-strip">
-          <span className="replacer-label">Replacer</span>
-          <label className="radio-inline">
-            <input type="radio" checked={repMode === 'store'} onChange={() => setRepMode('store')} />
-            Store Rule
-          </label>
-          <label className="radio-inline">
-            <input type="radio" checked={repMode === 'literal'} onChange={() => setRepMode('literal')} />
-            Literal Replace
-          </label>
-          <input className="replacer-find" placeholder="Find" value={findTxt} onChange={(e) => setFindTxt(e.target.value)} />
-          <input className="replacer-rep" placeholder="Replace with" value={repTxt} onChange={(e) => setRepTxt(e.target.value)} />
-          <button type="button" className="replacer-exec" onClick={execReplacer}>Execute Replacer</button>
-          {repMsg && <span className="replacer-msg">{repMsg}</span>}
-        </div>
-
         <div className="interval-row">
           <label>
             Base Interval
             <span className="int-input">
-              <input
-                type="text"
-                value={intv}
-                onChange={(e) => setIntv(e.target.value)}
-              />
-              <select value={unit} onChange={(e) => setUnit(e.target.value)}>
-                <option value="Sec">Sec</option>
-                <option value="Min">Min</option>
+              <select value={intv} onChange={(e) => setIntv(e.target.value)}>
+                {INTERVAL_OPTIONS.map((m) => (
+                  <option key={m} value={String(m)}>
+                    {fmtIntervalMin(m)}
+                  </option>
+                ))}
               </select>
             </span>
           </label>

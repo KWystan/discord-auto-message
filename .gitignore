@@ -12,6 +12,10 @@ __pycache__/
 # Local environment / secrets (never commit real credentials)
 server/.env
 
+# Firebase service account (never commit)
+server/firebase-service-account.json
+server/*firebase-adminsdk*.json
+
 # App data — contains tokens, webhooks, channel IDs (runtime state, not source)
 app_data.json
 

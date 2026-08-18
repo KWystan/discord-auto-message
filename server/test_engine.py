@@ -2,7 +2,8 @@
 Behavior-parity tests for AutomationEngine (server/engine.py).
 
 Runs against a throwaway data file and MOCKS all Discord network calls —
-nothing here touches the network or the real app_data.json.
+nothing here touches the network, Firestore, or the real app_data.json.
+Firestore is disabled explicitly so tests stay deterministic and offline.
 
 Run:  server/venv/Scripts/python.exe server/test_engine.py
 """
@@ -38,6 +39,7 @@ class EngineParityTest(unittest.TestCase):
         self.engine = AutomationEngine(
             data_file=self.data_file,
             log_callback=self.logs.append,
+            enable_firestore=False,
         )
 
     # ── persistence ────────────────────────────────────────────────────
@@ -51,7 +53,7 @@ class EngineParityTest(unittest.TestCase):
     def test_load_data_on_startup_migrates_missing_keys(self):
         with open(self.data_file, "w") as f:
             json.dump({"jobs": []}, f)
-        e = AutomationEngine(data_file=self.data_file)
+        e = AutomationEngine(data_file=self.data_file, enable_firestore=False)
         self.assertIn("tokens", e.data)
         self.assertIn("humanizer_settings", e.data)
 
@@ -218,6 +220,52 @@ class EngineParityTest(unittest.TestCase):
         with open(self.data_file) as f:
             saved = json.load(f)
         self.assertEqual(saved["jobs"][0]["msg"], "cycle message")
+
+    # ── webhook posting (no account token) ─────────────────────────────
+    def test_send_humanized_message_via_webhook(self):
+        self.engine.data["humanizer_settings"]["simulate_typing"] = False
+        with patch.object(REAL_REQUESTS, "post", return_value=FakeResponse(200)) as post:
+            ok = self.engine.send_humanized_message(
+                "", "", "hello",
+                web_url="https://discord.com/api/v10/webhooks/111222/abcdef",
+                acc_name="wh",
+            )
+            self.assertTrue(ok)
+            url = post.call_args.args[0]
+            self.assertIn("/webhooks/111222/abcdef", url)
+            self.assertEqual(post.call_args.kwargs["json"]["content"], "hello")
+        sent = [l for l in self.logs if "SENT [wh]" in l]
+        self.assertTrue(sent)
+
+    def test_send_humanized_message_webhook_invalid_url(self):
+        self.engine.data["humanizer_settings"]["simulate_typing"] = False
+        with patch.object(REAL_REQUESTS, "post", return_value=FakeResponse(200)) as post:
+            ok = self.engine.send_humanized_message("", "", "hi", web_url="not-a-url", acc_name="wh")
+            self.assertTrue(ok)
+            post.assert_not_called()
+        self.assertTrue(any("Invalid webhook URL" in l for l in self.logs))
+
+    def test_worker_webhook_job_sends_without_token(self):
+        self.engine.data["humanizer_settings"]["simulate_typing"] = False
+        self.engine.data["webhooks"]["w"] = "https://discord.com/api/v10/webhooks/111222/abcdef"
+        self.engine.data["channel_meta"]["general"] = {"rate_limit_per_user": 3600}
+        job, _ = self.engine.create_job("webhook", "general", "w", "cycle message", "0.001", "Min")
+        sent = {"n": 0}
+
+        def fake_post(url, **kwargs):
+            if "/typing" in url:
+                return FakeResponse(204)
+            sent["n"] += 1
+            return FakeResponse(200)
+
+        with patch.object(REAL_REQUESTS, "get", return_value=FakeResponse(200, {"rate_limit_per_user": 0})), \
+             patch.object(REAL_REQUESTS, "post", side_effect=fake_post):
+            self.engine.start_engine()
+            time.sleep(1.5)
+            self.engine.stop_engine()
+
+        self.assertGreaterEqual(sent["n"], 1)
+        self.assertTrue(any("SENT [webhook]" in l for l in self.logs))
 
     # ── session locks / DM commands ────────────────────────────────────
     def test_apply_grabbed_text_lock_and_block(self):

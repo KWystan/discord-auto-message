@@ -1,221 +1,71 @@
-/* ══ Dashboard shell ══════════════════════════════════════════════════ */
+/* ══ App shell ══════════════════════════════════════════════════════════ */
 .app {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 2.5rem 1.5rem 4rem;
-  position: relative;
+  padding: 2rem 1.5rem 4rem;
 }
 
-/* ══ Bento grid ═══════════════════════════════════════════════════════ */
-.bento {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.1rem;
-  align-items: stretch;
-}
-
-.bento > * {
-  min-width: 0;
-  animation: fade-up 700ms var(--ease-out) both;
-}
-
-.bento > *:nth-child(2) { animation-delay: 70ms; }
-.bento > *:nth-child(3) { animation-delay: 140ms; }
-.bento > *:nth-child(4) { animation-delay: 210ms; }
-.bento > *:nth-child(5) { animation-delay: 280ms; }
-.bento > *:nth-child(6) { animation-delay: 350ms; }
-.bento > *:nth-child(7) { animation-delay: 420ms; }
-
-.bento .stats,
-.bento .engine-bar,
-.bento .panel {
-  margin-bottom: 0;
-}
-
-/* Stats + engine bar always span the full bento row */
-.bento .stats,
-.bento .engine-bar {
-  grid-column: 1 / -1;
-}
-
-.span-2 { grid-column: span 2; }
-.span-3 { grid-column: span 3; }
-.span-4 { grid-column: span 4; }
-
-/* Taller paired card shouldn't leave a void: stretch fills the card */
-.bento .panel {
-  display: flex;
-  flex-direction: column;
-}
-
-.bento .panel > .table-wrap:last-child {
-  margin-top: auto;
-}
-
-/* Action row pinned to the bottom of a stretched card */
-.panel-foot {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.6rem;
-  margin-top: auto;
-  padding-top: 1rem;
-}
-
-/* ── Topbar ──────────────────────────────────────────────────────────── */
+/* ── Topbar ───────────────────────────────────────────────────────────── */
 .topbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .wordmark {
   margin: 0;
-  font-family: 'Geist Pixel', 'Geist Mono', ui-monospace, monospace;
-  font-size: 2rem;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  text-transform: lowercase;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .wordmark-sub {
   display: block;
-  margin-top: 0.55rem;
+  margin-top: 0.25rem;
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-size: 11px;
   color: var(--text-faint);
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .theme-toggle {
-  padding: 0.4rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-muted);
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-size: 11px;
 }
 
 .theme-toggle:hover {
-  border-color: var(--text);
+  border-color: var(--border-strong);
   color: var(--text);
 }
 
-/* ── View tabs ───────────────────────────────────────────────────────── */
-.tabs {
-  display: inline-flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  margin-bottom: 1.75rem;
-}
-
-.tab {
-  padding: 0.45rem 1.1rem;
-  border-radius: 7px;
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
-}
-
-.tab:hover {
-  color: var(--text);
-}
-
-.tab.active {
-  background: var(--ink);
-  color: var(--bg);
-}
-
-/* ── Stats strip (control-panel readout) ─────────────────────────────── */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-  margin-bottom: 1.75rem;
-}
-
-.stat {
-  padding: 1.1rem 1.25rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
-.stat + .stat {
-  border-left: 1px solid var(--border);
-}
-
-.stat-label {
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 9px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--text-faint);
-}
-
-.stat-value {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── Engine control row ──────────────────────────────────────────────── */
-.engine-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 2.25rem;
-}
-
+/* ── Buttons ──────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1.1rem;
-  border-radius: 8px;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
   border: 1px solid var(--border-strong);
   background: var(--surface);
   color: var(--text);
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
   white-space: nowrap;
 }
 
@@ -233,18 +83,6 @@
   opacity: 0.85;
 }
 
-.btn.danger {
-  border-color: transparent;
-  background: transparent;
-  color: var(--text-muted);
-  padding: 0.5rem 0.6rem;
-}
-
-.btn.danger:hover {
-  color: var(--text);
-  border-color: transparent;
-}
-
 .btn.ghost {
   border-color: transparent;
   background: transparent;
@@ -253,6 +91,16 @@
 
 .btn.ghost:hover {
   color: var(--text);
+}
+
+.btn.danger {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-faint);
+}
+
+.btn.danger:hover {
+  color: var(--ink);
   border-color: transparent;
 }
 
@@ -261,41 +109,93 @@
   pointer-events: none;
 }
 
-.engine-state {
-  flex: 1;
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-faint);
+.btn.discord-btn {
+  justify-content: center;
+  padding: 0.65rem 1.25rem;
+  background: #5865f2;
+  border-color: #5865f2;
+  color: #fff;
+}
+
+.btn.discord-btn:hover {
+  opacity: 0.9;
 }
 
 .btn-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
-/* ── Toast ───────────────────────────────────────────────────────────── */
+/* ── Engine bar ───────────────────────────────────────────────────────── */
+.engine-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.engine-state {
+  flex: 1;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-faint);
+  min-width: 180px;
+}
+
+.engine-hint {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ── Layout: sidebar + main ───────────────────────────────────────────── */
+.layout-sidebar {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sidebar .panel {
+  padding: 1rem 1rem 1.1rem;
+}
+
+.sidebar .panel-head {
+  margin-bottom: 0.75rem;
+}
+
+.main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* ── Toast ────────────────────────────────────────────────────────────── */
 .toast {
-  margin-bottom: 1.5rem;
-  padding: 0.7rem 1.1rem;
-  border-radius: 12px;
+  margin-bottom: 1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
   border: 1px solid var(--border-strong);
   background: var(--surface);
-  box-shadow: var(--shadow-card);
   font-size: 13px;
   font-weight: 500;
 }
 
-/* ── Panels ──────────────────────────────────────────────────────────── */
+/* ── Panels ───────────────────────────────────────────────────────────── */
 .panel {
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 10px;
   background: var(--surface-raised);
-  box-shadow: var(--shadow-card);
-  padding: 1.5rem 1.5rem 1.6rem;
-  margin-bottom: 1.75rem;
+  padding: 1.25rem 1.25rem 1.35rem;
 }
 
 .panel-head {
@@ -303,34 +203,179 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.1rem;
-}
-
-.section-label {
-  font-family: 'Geist Pixel', 'Geist Mono', ui-monospace, monospace;
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  color: var(--text-faint);
-  text-transform: lowercase;
+  margin-bottom: 1rem;
 }
 
 .panel-title {
-  margin: 0.25rem 0 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 .panel-hint {
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-size: 11px;
   color: var(--text-faint);
 }
 
-/* ── Tables ──────────────────────────────────────────────────────────── */
+.panel-note {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0 0 0.9rem;
+}
+
+.panel-note.ok {
+  color: var(--text);
+}
+
+.panel-note code {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  color: var(--text);
+}
+
+.panel-error,
+.modal-error {
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ── Account strip + token connect ────────────────────────────────────── */
+.account-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  margin-bottom: 1rem;
+}
+
+.account-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--border);
+}
+
+.account-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.account-name {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-sub {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+}
+
+.account-target {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.account-label {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+}
+
+.account-link {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.account-link:hover {
+  border-bottom-color: var(--text);
+}
+
+.token-box {
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  padding: 0.9rem;
+  background: var(--surface);
+}
+
+.webhook-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.9rem;
+}
+
+.webhook-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.webhook-name {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.token-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.token-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.token-row input:focus {
+  outline: none;
+  border-color: var(--text);
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────── */
 .table-wrap {
   overflow-x: auto;
 }
@@ -344,28 +389,23 @@
 .jobs-table th,
 .jobs-table td {
   text-align: left;
-  padding: 0.7rem 0.9rem;
+  padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
 .jobs-table th {
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
   color: var(--text-faint);
   padding-top: 0;
-  padding-bottom: 0.65rem;
+  padding-bottom: 0.5rem;
+  white-space: nowrap;
 }
 
 .jobs-table tr:last-child td {
   border-bottom: none;
-}
-
-.jobs-table tbody tr {
-  transition: background-color 200ms var(--ease-out);
 }
 
 .jobs-table tbody tr:hover {
@@ -380,15 +420,13 @@
 .jobs-table .empty {
   text-align: center;
   color: var(--text-faint);
-  padding: 2.25rem 1rem;
+  padding: 2rem 1rem;
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 12px;
 }
 
 .msg-cell {
-  max-width: 280px;
+  max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -405,16 +443,13 @@
 }
 
 .row-actions button {
-  margin-left: 0.85rem;
+  margin-left: 0.7rem;
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 11px;
   color: var(--text-muted);
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, currentColor 25%, transparent);
-  text-underline-offset: 2.5px;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-underline-offset: 2px;
 }
 
 .row-actions button:hover {
@@ -430,12 +465,12 @@
   color: var(--ink);
 }
 
-/* ── Forms ───────────────────────────────────────────────────────────── */
+/* ── Forms ────────────────────────────────────────────────────────────── */
 .form-row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.9rem;
+  gap: 0.8rem;
   margin-bottom: 1rem;
 }
 
@@ -443,10 +478,8 @@
   display: block;
   flex: 1 1 180px;
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
   color: var(--text-faint);
 }
 
@@ -457,15 +490,14 @@
 .modal textarea {
   display: block;
   width: 100%;
-  margin-top: 0.35rem;
-  padding: 0.5rem 0.7rem;
+  margin-top: 0.3rem;
+  padding: 0.45rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
   font-family: 'Geist Mono', ui-monospace, monospace;
-  transition: border-color 200ms var(--ease-out), background-color 500ms ease;
 }
 
 .form-row input:hover,
@@ -489,12 +521,9 @@
   display: inline-flex !important;
   align-items: center;
   gap: 0.5rem;
-  min-height: 38px;
+  min-height: 34px;
   color: var(--text-muted) !important;
-  font-family: 'Geist Mono', ui-monospace, monospace;
   font-size: 11px !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
   font-weight: 500 !important;
 }
 
@@ -510,7 +539,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0.35rem;
+  margin-top: 0.3rem;
 }
 
 .interval-row {
@@ -526,21 +555,19 @@
 }
 
 .int-input select {
-  width: 80px;
+  width: 180px;
   flex: 0 0 auto;
 }
 
 .unit-hint {
   font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: none;
   color: var(--text-faint);
 }
 
 .radio-row {
   display: flex;
   gap: 1.1rem;
-  margin-top: 0.45rem;
+  margin-top: 0.4rem;
 }
 
 .radio-row label,
@@ -550,24 +577,10 @@
   gap: 0.4rem;
   color: var(--text-muted) !important;
   font-size: 12px !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
   font-weight: 500 !important;
 }
 
-/* ── Errors ──────────────────────────────────────────────────────────── */
-.panel-error,
-.modal-error {
-  margin: 0.5rem 0;
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-/* ── Log viewer ──────────────────────────────────────────────────────── */
+/* ── Log viewer ───────────────────────────────────────────────────────── */
 .log-viewer-wrap {
   position: relative;
 }
@@ -578,9 +591,7 @@
   right: 0.4rem;
   z-index: 1;
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-size: 10px;
 }
 
 .log-status.on {
@@ -592,37 +603,36 @@
 }
 
 .log-box {
-  height: 260px;
+  height: 280px;
   overflow-y: auto;
   background: var(--ink);
   color: color-mix(in srgb, var(--bg) 82%, transparent);
   font-family: 'Geist Mono', ui-monospace, monospace;
   font-size: 12px;
-  line-height: 1.65;
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
+  line-height: 1.6;
+  padding: 0.8rem 0.95rem;
+  border-radius: 8px;
   white-space: pre-wrap;
   word-break: break-word;
   font-variant-numeric: tabular-nums;
-  scrollbar-color: color-mix(in srgb, var(--bg) 40%, transparent) transparent;
 }
 
 .log-empty {
   opacity: 0.5;
 }
 
-/* ── Modals ──────────────────────────────────────────────────────────── */
+/* ── Modals ───────────────────────────────────────────────────────────── */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--ink) 30%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
-  animation: fade-in 200ms ease both;
+  animation: fade-in 150ms ease both;
 }
 
 @keyframes fade-in {
@@ -642,16 +652,16 @@
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--border-strong);
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: var(--shadow-modal);
-  padding: 1.75rem;
-  animation: modal-in 200ms var(--ease-out) both;
+  padding: 1.5rem;
+  animation: modal-in 160ms var(--ease-out) both;
 }
 
 @keyframes modal-in {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.97);
   }
   to {
     opacity: 1;
@@ -660,34 +670,28 @@
 }
 
 .modal h2 {
-  margin: 0 0 1.1rem;
-  font-family: 'Geist Pixel', 'Geist Mono', ui-monospace, monospace;
-  font-size: 1.15rem;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  text-transform: lowercase;
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 .modal label {
   display: block;
-  margin-bottom: 0.9rem;
+  margin-bottom: 0.85rem;
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
   color: var(--text-faint);
 }
 
 .modal textarea {
   resize: vertical;
-  line-height: 1.55;
+  line-height: 1.5;
 }
 
 .modal .hint {
   font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
   color: var(--text-faint);
   font-size: 10px;
 }
@@ -696,10 +700,154 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.6rem;
-  margin-top: 1.25rem;
+  margin-top: 1.1rem;
 }
 
-/* ── Quick tools / replacer strip ────────────────────────────────────── */
+/* ── Compose message panel ────────────────────────────────────────────── */
+.format-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: -0.2rem 0 1rem;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.format-bar .fmt,
+.format-bar .fmt-size {
+  padding: 0.28rem 0.6rem;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.format-bar .fmt:hover,
+.format-bar .fmt-size:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.format-bar .fmt-bold {
+  font-weight: 800;
+}
+
+.format-bar .fmt-italic {
+  font-style: italic;
+}
+
+.format-bar .fmt-underline {
+  text-decoration: underline;
+}
+
+.format-bar .fmt-size {
+  width: auto;
+}
+
+.format-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+}
+.composer-msg-label {
+  display: block;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.composer-textarea {
+  display: block;
+  width: 100%;
+  min-height: 110px;
+  margin: 0.3rem 0 1rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  resize: vertical;
+}
+
+.composer-textarea:hover {
+  border-color: var(--border-strong);
+}
+
+.composer-textarea:focus {
+  outline: none;
+  border-color: var(--text);
+}
+
+.composer-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.composer-panel .form-row input,
+.composer-panel .form-row select,
+.composer-panel .composer-channel {
+  height: 34px;
+  box-sizing: border-box;
+}
+
+.composer-channel {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+}
+
+.composer-channel-name {
+  font-weight: 600;
+}
+
+.token-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
+}
+
+.token-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.token-chip-x {
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.token-chip-x:hover {
+  color: var(--ink);
+}
+
+/* ── Quick tools / replacer strip ─────────────────────────────────────── */
 .quick-tools {
   display: flex;
   flex-wrap: wrap;
@@ -707,24 +855,20 @@
   gap: 0.4rem;
   margin: -0.2rem 0 1rem;
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 11px;
   color: var(--text-faint);
 }
 
 .quick-tools button,
 .replacer-exec {
-  padding: 0.3rem 0.65rem;
-  border-radius: 6px;
+  padding: 0.28rem 0.6rem;
+  border-radius: 5px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-muted);
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .quick-tools button:hover,
@@ -739,18 +883,16 @@
   align-items: center;
   gap: 0.5rem;
   margin: 0 0 1rem;
-  padding: 0.7rem 0.85rem;
+  padding: 0.65rem 0.8rem;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--surface);
 }
 
 .replacer-label {
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
   color: var(--text-faint);
   margin-right: 0.25rem;
 }
@@ -769,24 +911,22 @@
   font-family: 'Geist Mono', ui-monospace, monospace;
 }
 
-/* ── Slash row (listener) ────────────────────────────────────────────── */
+/* ── Slash row (listener) ─────────────────────────────────────────────── */
 .slash-row {
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
 }
 
 .slash-tag {
-  padding: 0.2rem 0.55rem;
+  padding: 0.18rem 0.5rem;
   border-radius: 999px;
   border: 1px solid var(--border-strong);
   color: var(--text-muted);
   font-family: 'Geist Mono', ui-monospace, monospace;
   font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .slash-tag--red {
@@ -802,78 +942,254 @@
   margin: 0;
 }
 
-/* ── Manual JSON edit modal ──────────────────────────────────────────── */
-.json-modal {
-  width: 720px;
-}
-
-.json-warning {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin: 0 0 0.85rem;
-  line-height: 1.5;
-}
-
-.json-editor {
-  width: 100%;
-  min-height: 340px;
-  padding: 0.7rem;
+/* ── Topbar account chip ──────────────────────────────────────────────── */
+.auth-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.6rem 0.25rem 0.3rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--ink);
-  color: color-mix(in srgb, var(--bg) 82%, transparent);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.auth-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.auth-chip-name {
   font-family: 'Geist Mono', ui-monospace, monospace;
   font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.auth-logout {
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.auth-logout:hover {
+  color: var(--text);
+}
+
+/* ── Server panel (all channels, click to configure) ──────────────────── */
+.server-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.server-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  background: var(--border);
+}
+
+.server-icon-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-muted);
+  background: var(--border);
+}
+
+.server-head-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.server-name {
+  font-weight: 650;
+  font-size: 15px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.server-sub {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.server-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.server-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.3rem;
+}
+
+.server-cat-name {
+  padding: 0.35rem 0.6rem 0.2rem;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+}
+
+.server-channel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.server-channel:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.server-channel-glyph {
+  width: 1.1em;
+  text-align: center;
+  flex: 0 0 auto;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 13px;
+}
+
+.server-channel-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.server-channel-slow {
+  margin-left: auto;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.server-channel-none {
+  margin-left: auto;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-faint);
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.server-channel.locked {
+  opacity: 0.55;
+}
+
+.server-channel.locked:hover {
+  opacity: 1;
+}
+
+.server-emojis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.server-emoji {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.server-note {
+  font-size: 13px;
   line-height: 1.55;
-  resize: vertical;
+  color: var(--text-muted);
+  margin: 0 0 0.9rem;
 }
 
-.json-editor:focus {
-  outline: none;
-  border-color: var(--text);
+.server-link-add {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────── */
+/* ── Job editor context (channel-first flow) ──────────────────────────── */
+.editor-context {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 1.1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.editor-context-label {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  padding-top: 0.15rem;
+}
+
+.editor-context-value {
+  font-size: 13px;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.editor-context-slow {
+  grid-column: 1 / -1;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
-  .bento {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .span-4 {
-    grid-column: span 2;
-  }
-}
-
-@media (max-width: 900px) {
-  .stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .stat:nth-child(odd) {
-    border-left: none;
-  }
-
-  .stat:nth-child(n + 3) {
-    border-top: 1px solid var(--border);
+  .layout-sidebar {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 640px) {
   .app {
-    padding: 1.5rem 1rem 3rem;
+    padding: 1.25rem 0.9rem 3rem;
   }
 
-  .bento {
-    grid-template-columns: 1fr;
-  }
-
-  .span-2,
-  .span-3,
-  .span-4 {
-    grid-column: span 1;
+  .topbar {
+    flex-wrap: wrap;
   }
 
   .wordmark {
-    font-size: 1.6rem;
+    font-size: 1.2rem;
   }
 }

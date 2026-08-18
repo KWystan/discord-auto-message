@@ -21,7 +21,12 @@ export const storeManagerEntry = (cat, name, value) =>
 export const deleteManagerEntry = (cat, name) => api(`/api/manager/${cat}/${name}`, { method: 'DELETE' })
 export const saveHumanizer = (settings) =>
   api('/api/settings/humanizer', { method: 'PUT', body: JSON.stringify(settings) })
-export const listenerStart = (cfg) => api('/api/listener/start', { method: 'POST', body: JSON.stringify(cfg) })
-export const listenerStop = () => api('/api/listener/stop', { method: 'POST' })
-export const getData = () => api('/api/data')
-export const putData = (data) => api('/api/data', { method: 'PUT', body: JSON.stringify(data) })
+export const getServer = () => api('/api/server')
+export const getServerChannel = (id) => api(`/api/server/channels/${id}`)
+
+export function fmtSlow(sec) {
+  if (!sec) return null
+  if (sec % 3600 === 0) return `${sec / 3600} msg/hr`
+  if (sec % 60 === 0) return `${sec / 60} min`
+  return `${sec}s`
+}

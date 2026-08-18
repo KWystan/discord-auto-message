@@ -2,12 +2,15 @@ import json
 import os
 import queue
 import threading
+import time
 from collections import deque
 from pathlib import Path
 
+import requests
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request
 
+import auth
 from engine import AutomationEngine
 
 load_dotenv()
@@ -62,12 +65,156 @@ def _job_view(job):
     }
 
 
+def _cdn_url(kind, obj_id, hash_value, size=256):
+    if not hash_value:
+        return None
+    ext = "gif" if str(hash_value).startswith("a_") else "png"
+    return f"https://cdn.discordapp.com/{kind}/{obj_id}/{hash_value}.{ext}?size={size}"
+
+
+_server_cache = {}
+_server_cache_lock = threading.Lock()
+
+
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
 @app.get("/api/health")
 def health():
     return jsonify({"status": "ok"})
+
+
+# ---------------------------------------------------------------------------
+# Server scan (channels, icon, emojis — Discord-style panel data)
+# ---------------------------------------------------------------------------
+@app.get("/api/server")
+def server_info():
+    """Aggregate the fixed server's info: guild card, channel list, emojis.
+
+    Scans with the first stored account token. Channel listing falls back
+    gracefully: if GET /guilds/{id}/channels is denied (403 — no
+    MANAGE_CHANNELS), only the configured channel is shown
+    (channels_source='fallback'). Results are cached for 5 minutes.
+    """
+    scan_token = next((t for t in engine.data.get("tokens", {}).values() if t), None)
+    if not scan_token:
+        return jsonify({"error": "No account token saved yet."}), 401
+
+    with _server_cache_lock:
+        cached = _server_cache.get("anon")
+        if cached and cached.get("ts", 0) > time.time() - 300:
+            return jsonify(cached["data"])
+
+    guild_id = auth.target_guild_id()
+    if not guild_id:
+        return jsonify({"error": "DISCORD_GUILD_ID is not configured."}), 400
+    try:
+        # Guild card comes from the preview endpoint (name, icon, member
+        # counts, description, emojis) — no 'guilds' OAuth scope needed.
+        preview = {}
+        try:
+            preview = auth.fetch_guild_preview(scan_token, guild_id)
+        except requests.HTTPError:
+            pass
+        guild = {
+            "id": guild_id,
+            "name": preview.get("name"),
+            "icon": preview.get("icon"),
+            "approximate_member_count": preview.get("approximate_member_count"),
+            "approximate_presence_count": preview.get("approximate_presence_count"),
+            "description": preview.get("description"),
+        }
+        # Enrich with the guilds list when the credential can read it.
+        try:
+            guilds = auth.fetch_user_guilds(scan_token)
+            entry = next((g for g in guilds if str(g.get("id")) == guild_id), None)
+            if entry:
+                guild.update({
+                    "name": entry.get("name") or guild.get("name"),
+                    "icon": entry.get("icon") or guild.get("icon"),
+                    "approximate_member_count": entry.get("approximate_member_count") or guild.get("approximate_member_count"),
+                    "approximate_presence_count": entry.get("approximate_presence_count") or guild.get("approximate_presence_count"),
+                    "permissions": entry.get("permissions"),
+                })
+        except requests.HTTPError:
+            pass
+        if not guild.get("name"):
+            return jsonify({"error": "Could not read the configured server."}), 404
+
+        channels = []
+        source = "none"
+        try:
+            channels = auth.fetch_channels(scan_token, guild_id)
+            source = "list"
+        except requests.HTTPError:
+            source = "fallback"
+
+        # Include the configured channel in fallback mode.
+        known_ids = {str(c.get("id")) for c in channels}
+        if source == "fallback" and auth.target_channel_id() and str(auth.target_channel_id()) not in known_ids:
+            try:
+                channels.append(auth.fetch_channel(scan_token, auth.target_channel_id()))
+            except requests.HTTPError:
+                pass
+
+        # Persist per-channel slowmode (channel_meta) so jobs on channels the
+        # scan can't list still space sends correctly.
+        meta = engine.data.setdefault("channel_meta", {})
+        meta_changed = False
+        for ch in channels:
+            name = ch.get("name")
+            if not name:
+                continue
+            val = int(ch.get("rate_limit_per_user") or 0)
+            if meta.get(name, {}).get("rate_limit_per_user", 0) != val:
+                meta[name] = {"rate_limit_per_user": val}
+                meta_changed = True
+        if meta_changed:
+            engine.auto_save()
+
+        payload = {
+            "guild": {
+                "id": guild.get("id"),
+                "name": guild.get("name"),
+                "icon_url": _cdn_url("icons", guild.get("id"), guild.get("icon")),
+                "member_count": guild.get("approximate_member_count"),
+                "presence_count": guild.get("approximate_presence_count"),
+                "description": guild.get("description"),
+                "permissions": guild.get("permissions"),
+            },
+            "channels": channels,
+            "channels_source": source,
+            "emojis": [
+                {
+                    "id": e.get("id"),
+                    "name": e.get("name"),
+                    "animated": bool(e.get("animated")),
+                    "url": f"https://cdn.discordapp.com/emojis/{e.get('id')}.{'gif' if e.get('animated') else 'png'}",
+                }
+                for e in preview.get("emojis", [])
+            ],
+        }
+    except requests.HTTPError as e:
+        return jsonify({"error": f"Discord API error {e.response.status_code}"}), 502
+
+    with _server_cache_lock:
+        _server_cache["anon"] = {"ts": time.time(), "data": payload}
+    return jsonify(payload)
+
+
+@app.get("/api/server/channels/<channel_id>")
+def server_channel(channel_id):
+    """Fetch a single channel's details (works with VIEW_CHANNEL only)."""
+    candidates = [t for t in engine.data.get("tokens", {}).values() if t]
+    last_code = None
+    for tok in candidates:
+        try:
+            return jsonify(auth.fetch_channel(tok, channel_id))
+        except requests.HTTPError as e:
+            last_code = e.response.status_code
+    if last_code:
+        return jsonify({"error": f"Discord API error {last_code}"}), 502
+    return jsonify({"error": "No account token saved yet."}), 401
 
 
 # ---------------------------------------------------------------------------
@@ -120,34 +267,6 @@ def humanizer():
 
 
 # ---------------------------------------------------------------------------
-# Listener
-# ---------------------------------------------------------------------------
-@app.post("/api/listener/start")
-def listener_start():
-    body = request.get_json(force=True) or {}
-    try:
-        engine.toggle_listener(
-            token_nick=str(body.get("token", "")).strip(),
-            chan_id=str(body.get("channel_id", "")).strip(),
-            teacher_id=str(body.get("teacher_id", "")).strip(),
-            target_job_id=str(body.get("target_job_id", "")).strip(),
-            slash_input=str(body.get("slash_input", "")).strip(),
-            slash_channel=str(body.get("slash_channel", "")).strip(),
-            slash_sorting=str(body.get("slash_sorting", "Interval")),
-            force_state=True,
-        )
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    return jsonify({"listening": engine.listening})
-
-
-@app.post("/api/listener/stop")
-def listener_stop():
-    engine.toggle_listener(force_state=False)
-    return jsonify({"listening": engine.listening})
-
-
-# ---------------------------------------------------------------------------
 # Raw data (manual JSON edit, mirrors the desktop's open-in-editor)
 # ---------------------------------------------------------------------------
 @app.get("/api/data")
@@ -184,10 +303,19 @@ def list_jobs():
 @app.post("/api/jobs")
 def create_job():
     body = request.get_json(force=True) or {}
+    chan = str(body.get("chan", "")).strip()
+    # Token jobs need channels[name] -> id so the engine can resolve the
+    # channel; webhook jobs tolerate it too (harmless extra mapping).
+    channel_id = str(body.get("channel_id", "")).strip()
+    if channel_id and chan:
+        try:
+            engine.store_manager_entry("channels", chan, channel_id)
+        except Exception:
+            pass
     try:
         job, redacted = engine.create_job(
             acc=str(body.get("acc", "")).strip(),
-            chan=str(body.get("chan", "")).strip(),
+            chan=chan,
             web=str(body.get("web") or "None"),
             msg=str(body.get("msg", "")).strip(),
             interval=str(body.get("int", "")).strip(),
@@ -201,11 +329,18 @@ def create_job():
 @app.put("/api/jobs/<job_id>")
 def update_job(job_id):
     body = request.get_json(force=True) or {}
+    chan = str(body.get("chan", "")).strip()
+    channel_id = str(body.get("channel_id", "")).strip()
+    if channel_id and chan:
+        try:
+            engine.store_manager_entry("channels", chan, channel_id)
+        except Exception:
+            pass
     try:
         job = engine.update_job(
             job_id,
             acc=str(body.get("acc", "")).strip(),
-            chan=str(body.get("chan", "")).strip(),
+            chan=chan,
             web=str(body.get("web") or "None"),
             msg=str(body.get("msg", "")).strip(),
             interval=str(body.get("int", "")).strip(),

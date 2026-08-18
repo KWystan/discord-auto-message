@@ -82,6 +82,7 @@ Set these Vercel environment variables (all required for the app to work):
 - `FIRESTORE_COLLECTION=discordautomsg`
 - `DISCORD_GUILD_ID` = `571992648190263317`
 - `DISCORD_CHANNEL_ID` = `997645910769160202`
+- `AUTOMSG_ICON_SCAN_TOKEN` — optional Discord token used only for server/channel icons and live channel metadata; it is not added to any user's posting-token tabs
 
 The service-account file is intentionally gitignored; use `FIREBASE_SERVICE_ACCOUNT_JSON` on Vercel instead. The root `requirements.txt` includes `server/requirements.txt` so the Python Function gets the same backend dependencies.
 

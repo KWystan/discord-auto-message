@@ -325,18 +325,21 @@ def scan_token_clear():
 def server_info():
     """Aggregate the fixed server's info: guild card, channel list, emojis.
 
-    Scans with the stored account token named by ?token= (falls back to the
-    first saved token). Channel listing falls back gracefully: if
+    Scans with the stored account token named by ?token=, then the optional
+    icon-only AUTOMSG_ICON_SCAN_TOKEN, then the per-user scan token and first
+    saved token. Channel listing falls back gracefully: if
     GET /guilds/{id}/channels is denied (403 — no MANAGE_CHANNELS), only the
     configured channel is shown (channels_source='fallback'). Results are
     cached for 5 minutes.
     """
     tokens = engine.data.get("tokens", {})
     nick = request.args.get("token", "").strip()
-    # The requested tab's token wins; otherwise the icon-only scan token
-    # (never usable for posting); otherwise the first posting token.
+    # The requested tab's token wins; the environment token is icon-only and
+    # is never inserted into the user's posting-token map.
+    icon_scan_token = os.getenv("AUTOMSG_ICON_SCAN_TOKEN", "").strip()
     scan_token = (
         tokens.get(nick)
+        or icon_scan_token
         or engine.data.get("scan_token")
         or next((t for t in tokens.values() if t), None)
     )
@@ -449,6 +452,9 @@ def server_info():
 def server_channel(channel_id):
     """Fetch a single channel's details (works with VIEW_CHANNEL only)."""
     candidates = [t for t in engine.data.get("tokens", {}).values() if t]
+    icon_scan_token = os.getenv("AUTOMSG_ICON_SCAN_TOKEN", "").strip()
+    if icon_scan_token:
+        candidates.append(icon_scan_token)
     if engine.data.get("scan_token"):
         candidates.append(engine.data["scan_token"])
     last_code = None
